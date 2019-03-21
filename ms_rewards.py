@@ -730,6 +730,25 @@ def ensure_pc_mode_logged_in():
     click_by_id('id_l')
     time.sleep(0.1)
 
+def log_summary(summary):
+    accounts = list(summary.keys())
+    line = '|  {account}  |  {earned}  |  {goal}  |  {pc}  |  {mobile}  |  {edge}  |  {offers}  |'
+
+    logging.info(msg='\n=============   SUMMARY   =============')
+    logging.info(msg='|  Account  |  Earned  |  GOAL  |  PC  |  Mobile  |  Edge  |  Offers  |')
+
+    for account in accounts:
+        output = line.format(account=account, 
+            earned=(summary[account]['end'] - summary[account]['start']),
+            goal=summary[account]['goal'],
+            pc=summary[account]['pc'],
+            mobile=summary[account]['mobile'],
+            edge=summary[account]['edge'],
+            offers=summary[account]['offers'],
+        )
+        logging.info(msg=output)
+        
+
 
 if __name__ == '__main__':
     try:
@@ -760,10 +779,23 @@ if __name__ == '__main__':
         # iter through accounts, search, and complete quizzes
         login_dict_keys = list(login_dict.keys())
         random.shuffle(login_dict_keys)
+
+        summary = {}
+        # prepare summary for print out at completion.
+        for dict_key in login_dict_keys:
+            summary[dict_key] = {
+                "start": 0,
+                "end": 0,
+                "pc": 0,
+                "mobile": 0,
+                "edge": 0,
+                "offers": 0,
+                "goal": 0
+            }
+        
         for dict_key in login_dict_keys:
             email = dict_key
             password = login_dict[dict_key]
-
             if parser.mobile_mode:
                 # MOBILE MODE
                 logging.info(msg='-------------------------MOBILE-------------------------')
@@ -813,3 +845,5 @@ if __name__ == '__main__':
                     browser.quit()
     except WebDriverException:
         logging.exception(msg='Failure at main()')
+    finally:
+        log_summary(summary)
