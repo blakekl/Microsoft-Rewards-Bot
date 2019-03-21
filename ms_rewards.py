@@ -42,6 +42,21 @@ MOBILE_USER_AGENT = ('Mozilla/5.0 (Windows Phone 10.0; Android 4.2.1; WebView/3.
                      'AppleWebKit/537.36 (KHTML, like Gecko) coc_coc_browser/64.118.222 '
                      'Chrome/52.0.2743.116 Mobile Safari/537.36 Edge/15.15063')
 
+# Stores the point totals for all the counts. Written to log at end of script.
+SUMMARY = {}
+CURRENT_ACCOUNT = ""
+
+def init_summary(accounts):
+    for account in accounts:
+        SUMMARY[account] = {
+            "start": 0,
+            "end": 0,
+            "pc": 0,
+            "mobile": 0,
+            "edge": 0,
+            "goal": 0
+        }
+
 
 def init_logging():
     # gets dir path of python script, not cwd, for execution on cron
@@ -671,6 +686,9 @@ def get_point_total(pc=False, mobile=False, log=False):
         # get edge points
         current_edge_points, max_edge_points = map(
             int, browser.find_element_by_class_name('edgesearch').text.split('/'))
+        # get goal points
+        current_goal_points, max_goal_points = map(
+            int, browser.find_element_by_xpath('//*[@id="goal"]/div[2]/div[1]').text.split(' of '))
     except ValueError:
         return False
 
@@ -680,6 +698,14 @@ def get_point_total(pc=False, mobile=False, log=False):
         logging.info(msg=f'PC points = {current_pc_points}/{max_pc_points}')
         logging.info(msg=f'Edge points = {current_edge_points}/{max_edge_points}')
         logging.info(msg=f'Mobile points = {current_mobile_points}/{max_mobile_points}')
+
+    if SUMMARY[CURRENT_ACCOUNT]['start'] == 0:
+        SUMMARY[CURRENT_ACCOUNT]['start'] = current_point_total
+    SUMMARY[CURRENT_ACCOUNT]['end'] = current_point_total
+    SUMMARY[CURRENT_ACCOUNT]['pc'] = current_pc_points
+    SUMMARY[CURRENT_ACCOUNT]['mobile'] = current_mobile_points
+    SUMMARY[CURRENT_ACCOUNT]['edge'] = current_edge_points
+    SUMMARY[CURRENT_ACCOUNT]['goal'] = 'Reached' if current_goal_points == max_goal_points else current_goal_points
 
     # if pc flag, check if pc and edge points met
     if pc:
@@ -730,25 +756,23 @@ def ensure_pc_mode_logged_in():
     click_by_id('id_l')
     time.sleep(0.1)
 
-def log_summary(summary):
-    accounts = list(summary.keys())
-    line = '|  {account}  |  {earned}  |  {goal}  |  {pc}  |  {mobile}  |  {edge}  |  {offers}  |'
+def log_summary():
+    accounts = list(SUMMARY.keys())
+    if len(accounts) > 0:
+        line = '|  {account}  |  {earned}  |  {goal}  |  {pc}  |  {mobile}  |  {edge}  |'
 
-    logging.info(msg='\n=============   SUMMARY   =============')
-    logging.info(msg='|  Account  |  Earned  |  GOAL  |  PC  |  Mobile  |  Edge  |  Offers  |')
+        logging.info(msg='=============   SUMMARY   =============')
+        logging.info(msg='|  Account  |  Earned  |  GOAL  |  PC  |  Mobile  |  Edge  |')
 
-    for account in accounts:
-        output = line.format(account=account, 
-            earned=(summary[account]['end'] - summary[account]['start']),
-            goal=summary[account]['goal'],
-            pc=summary[account]['pc'],
-            mobile=summary[account]['mobile'],
-            edge=summary[account]['edge'],
-            offers=summary[account]['offers'],
-        )
-        logging.info(msg=output)
-        
-
+        for account in accounts:
+            output = line.format(account=account, 
+                earned=(SUMMARY[account]['end'] - SUMMARY[account]['start']),
+                goal=SUMMARY[account]['goal'],
+                pc=SUMMARY[account]['pc'],
+                mobile=SUMMARY[account]['mobile'],
+                edge=SUMMARY[account]['edge'],
+            )
+            logging.info(msg=output)
 
 if __name__ == '__main__':
     try:
@@ -780,22 +804,13 @@ if __name__ == '__main__':
         login_dict_keys = list(login_dict.keys())
         random.shuffle(login_dict_keys)
 
-        summary = {}
         # prepare summary for print out at completion.
-        for dict_key in login_dict_keys:
-            summary[dict_key] = {
-                "start": 0,
-                "end": 0,
-                "pc": 0,
-                "mobile": 0,
-                "edge": 0,
-                "offers": 0,
-                "goal": 0
-            }
+        init_summary(login_dict_keys)
         
         for dict_key in login_dict_keys:
             email = dict_key
             password = login_dict[dict_key]
+            CURRENT_ACCOUNT = email
             if parser.mobile_mode:
                 # MOBILE MODE
                 logging.info(msg='-------------------------MOBILE-------------------------')
@@ -843,7 +858,6 @@ if __name__ == '__main__':
                     logging.error(msg=f'WebDriverException while executing pc portion', exc_info=True)
                 finally:
                     browser.quit()
+        log_summary()
     except WebDriverException:
         logging.exception(msg='Failure at main()')
-    finally:
-        log_summary(summary)
