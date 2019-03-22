@@ -758,10 +758,10 @@ def ensure_pc_mode_logged_in():
 
 def log_summary():
     accounts = list(SUMMARY.keys())
-    if accounts.count > 1:
+    if len(accounts) > 0:
         line = '|  {account}  |  {earned}  |  {goal}  |  {pc}  |  {mobile}  |  {edge}  |'
 
-        logging.info(msg='\n=============   SUMMARY   =============')
+        logging.info(msg='=============   SUMMARY   =============')
         logging.info(msg='|  Account  |  Earned  |  GOAL  |  PC  |  Mobile  |  Edge  |')
 
         for account in accounts:
