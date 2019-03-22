@@ -9,3 +9,6 @@ venv/
 drivers/
 logs/
 geckodriver.log
+
+# IDE files
+.vscode
