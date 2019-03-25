@@ -28,6 +28,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
+from tabulate import tabulate
 
 # URLs
 BING_SEARCH_URL = 'https://www.bing.com/search'
@@ -759,20 +760,21 @@ def ensure_pc_mode_logged_in():
 def log_summary():
     accounts = list(SUMMARY.keys())
     if len(accounts) > 0:
-        line = '|  {account}  |  {earned}  |  {goal}  |  {pc}  |  {mobile}  |  {edge}  |'
-
-        logging.info(msg='=============   SUMMARY   =============')
-        logging.info(msg='|  Account  |  Earned  |  GOAL  |  PC  |  Mobile  |  Edge  |')
-
+        table = [
+            ['=============   SUMMARY   ============='],
+            ['Account', 'Earned', 'Goal', 'PC', 'Mobile', 'Edge']
+        ]
         for account in accounts:
-            output = line.format(account=account, 
-                earned=(SUMMARY[account]['end'] - SUMMARY[account]['start']),
-                goal=SUMMARY[account]['goal'],
-                pc=SUMMARY[account]['pc'],
-                mobile=SUMMARY[account]['mobile'],
-                edge=SUMMARY[account]['edge'],
-            )
-            logging.info(msg=output)
+            row = [ 
+                account,
+                (SUMMARY[account]['end'] - SUMMARY[account]['start']),
+                SUMMARY[account]['goal'],
+                SUMMARY[account]['pc'],
+                SUMMARY[account]['mobile'],
+                SUMMARY[account]['edge'],
+            ]
+            table.append(row)
+        logging.info(tabulate(table))
 
 if __name__ == '__main__':
     try:
@@ -806,11 +808,12 @@ if __name__ == '__main__':
 
         # prepare summary for print out at completion.
         init_summary(login_dict_keys)
-        
+
         for dict_key in login_dict_keys:
             email = dict_key
             password = login_dict[dict_key]
             CURRENT_ACCOUNT = email
+
             if parser.mobile_mode:
                 # MOBILE MODE
                 logging.info(msg='-------------------------MOBILE-------------------------')
