@@ -1,6 +1,6 @@
 #! /usr/lib/python3.6
 # ms_rewards.py - Searches for results via pc bing browser and mobile, completes quizzes on pc bing browser
-# Version 2019.02.02
+# Version 2019.03.01
 
 # TODO replace sleeps with minimum sleeps for explicit waits to work, especially after a page redirect
 # FIXME mobile version does not require re-sign in, but pc version does, why?
@@ -42,6 +42,8 @@ PC_USER_AGENT = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
 MOBILE_USER_AGENT = ('Mozilla/5.0 (Windows Phone 10.0; Android 4.2.1; WebView/3.0) '
                      'AppleWebKit/537.36 (KHTML, like Gecko) coc_coc_browser/64.118.222 '
                      'Chrome/52.0.2743.116 Mobile Safari/537.36 Edge/15.15063')
+# log level
+LOG_LEVEL = logging.INFO
 
 # Stores the point totals for all the counts. Written to log at end of script.
 SUMMARY = {}
@@ -64,7 +66,7 @@ def init_logging():
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
     os.makedirs('logs', exist_ok=True)
     log_path = os.path.join('logs', 'ms_rewards.log')
-    logging.basicConfig(filename=log_path, level=logging.INFO,
+    logging.basicConfig(filename=log_path, level=LOG_LEVEL,
                         format='%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s')
 
 
@@ -122,11 +124,9 @@ def get_search_terms():
             logging.error('Error retrieving google trends json.')
         except KeyError:
             logging.error('Cannot parse, JSON keys are modified.')
-    # get unique terms, shuffle, return an enumerated list
-    random.shuffle(search_terms)
-    search_terms = set(search_terms)
+    # get unique terms and return a list
     logging.info(msg=f'# of search items: {len(search_terms)}\n')
-    return list(enumerate(search_terms, start=0))
+    return list(set(search_terms))
 
 
 def get_login_info():
@@ -438,8 +438,12 @@ def search(search_terms, mobile_search=False):
     """
     if mobile_search:
         search_limit = 20
+        random.shuffle(search_terms)
+        search_terms = list(enumerate(search_terms, start=0))
     else:
         search_limit = 30
+        random.shuffle(search_terms)
+        search_terms = list(enumerate(search_terms, start=0))
 
     logging.info(msg="Search Start")
     if search_terms == [] or search_terms is None:
@@ -497,7 +501,7 @@ def iter_dailies():
         # get points links from parent, # finds link (a) descendant of selected node
         offer_links = [
             parent.find_element_by_xpath(
-            'div[contains(@class,"actionLink")]//descendant::a')
+                'div[contains(@class,"actionLink")]//descendant::a')
             for parent in parent_elements
         ]
         # iterate through the dailies
@@ -579,22 +583,23 @@ def daily_poll():
 def lightning_quiz():
     for question_round in range(10):
         logging.debug(msg=f'Round# {question_round}')
-        # iterate through 4 choices
-        for i in range(4):
-            click_choices = find_by_class('rqOption')
-            if click_choices:
-                i = click_choices[i]
-                # if object is stale, greyed out, or not visible, skip it
-                if i.is_displayed():
+        if find_by_id('rqAnswerOption0'):
+            first_page = browser.find_element_by_id('rqAnswerOption0').get_attribute("data-serpquery")
+            browser.get(f"https://www.bing.com{first_page}")
+            time.sleep(3)
+            for i in range(10):
+                if find_by_id(f'rqAnswerOption{i}'):
+                    browser.execute_script(f"document.querySelector('#rqAnswerOption{i}').click();")
                     logging.debug(msg=f'Clicked {i}')
-                    i.click()
                     time.sleep(2)
         # let new page load
         time.sleep(3)
         if find_by_id('quizCompleteContainer'):
             break
     # close the quiz completion splash
-    find_by_css('.cico.btCloseBack')[0].click()
+    quiz_complete = find_by_css('.cico.btCloseBack')
+    if quiz_complete:
+        quiz_complete[0].click()
     time.sleep(3)
     main_window()
 
@@ -650,7 +655,9 @@ def drag_and_drop_quiz():
                 break
     # close the quiz completion splash
     time.sleep(3)
-    find_by_css('.cico.btCloseBack')[0].click()
+    quiz_complete = find_by_css('.cico.btCloseBack')
+    if quiz_complete:
+        quiz_complete[0].click()
     time.sleep(3)
     main_window()
 
