@@ -713,7 +713,7 @@ def get_point_total(pc=False, mobile=False, log=False):
     SUMMARY[CURRENT_ACCOUNT]['pc'] = current_pc_points
     SUMMARY[CURRENT_ACCOUNT]['mobile'] = current_mobile_points
     SUMMARY[CURRENT_ACCOUNT]['edge'] = current_edge_points
-    SUMMARY[CURRENT_ACCOUNT]['goal'] = 'Reached' if current_goal_points == max_goal_points else current_goal_points
+    SUMMARY[CURRENT_ACCOUNT]['goal'] = 'Reached!' if current_goal_points == max_goal_points else str(max_goal_points - current_goal_points) + ' remaining'
 
     # if pc flag, check if pc and edge points met
     if pc:
@@ -768,7 +768,6 @@ def log_summary():
     accounts = list(SUMMARY.keys())
     if len(accounts) > 0:
         table = [
-            ['=============   SUMMARY   ============='],
             ['Account', 'Earned', 'Goal', 'PC', 'Mobile', 'Edge']
         ]
         for account in accounts:
@@ -781,7 +780,9 @@ def log_summary():
                 SUMMARY[account]['edge'],
             ]
             table.append(row)
-        logging.info(tabulate(table))
+        tableData = tabulate(table, headers="firstrow")
+        tableData = '\n\n=============   SUMMARY   =============\n' + tableData + "\n\n"
+        logging.info(tableData)
 
 if __name__ == '__main__':
     try:
