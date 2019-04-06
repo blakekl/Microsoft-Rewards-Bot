@@ -792,7 +792,7 @@ def log_summary():
     accounts = list(SUMMARY.keys())
     if len(accounts) > 0:
         table = [
-            ['Account', 'Earned', 'Goal', 'PC', 'Mobile', 'Edge']
+            ['Account', 'Earned', 'Goal', 'PC', 'Mobile']
         ]
         for account in accounts:
             row = [ 
@@ -801,7 +801,6 @@ def log_summary():
                 SUMMARY[account]['goal'],
                 SUMMARY[account]['pc'],
                 SUMMARY[account]['mobile'],
-                SUMMARY[account]['edge'],
             ]
             table.append(row)
         tableData = tabulate(table, headers="firstrow")
